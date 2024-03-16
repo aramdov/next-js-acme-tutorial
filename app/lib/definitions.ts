@@ -2,6 +2,8 @@
 // It describes the shape of the data, and what data type each property should accept.
 // For simplicity of teaching, we're manually defining these types.
 // However, these types are generated automatically if you're using an ORM such as Prisma.
+// We're manually declaring the data types, but for better type-safety, we recommend Prisma, which automatically generates types based on your database schema.
+
 export type User = {
   id: string;
   name: string;

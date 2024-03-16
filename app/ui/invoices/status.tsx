@@ -4,6 +4,9 @@ import clsx from 'clsx';
 export default function InvoiceStatus({ status }: { status: string }) {
   return (
     <span
+
+      // clsx helps toggle class names based on conditions
+      // conditionally apply classes based on the status prop
       className={clsx(
         'inline-flex items-center rounded-full px-2 py-1 text-xs',
         {
