@@ -1,4 +1,5 @@
 import { sql } from '@vercel/postgres';
+// we import the Vercel Postgres SDK. It also provides protection against SQL injection attacks.
 import {
   CustomerField,
   CustomersTableType,
@@ -10,20 +11,30 @@ import {
 } from './definitions';
 import { formatCurrency } from './utils';
 
+// By default, @vercel/postgres doesn't set its own caching semantics. This allows the framework to set its own static and dynamic behavior.
+// You can use a Next.js API called unstable_noStore inside your Server Components or data fetching functions to opt out of static rendering. Let's add this.
+import { unstable_noStore as noStore } from 'next/cache';
+
+
+// Technically you can call SQL inside ANY server component.
+// But we isolated data qureies to a separate file to keep the code clean and organized.
+// You can import queries from this file into other components and use them as needed.
+
 export async function fetchRevenue() {
   // Add noStore() here to prevent the response from being cached.
   // This is equivalent to in fetch(..., {cache: 'no-store'}).
+  noStore()
 
   try {
     // Artificially delay a response for demo purposes.
     // Don't do this in production :)
 
-    // console.log('Fetching revenue data...');
-    // await new Promise((resolve) => setTimeout(resolve, 3000));
+    console.log('Fetching revenue data...');
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
     const data = await sql<Revenue>`SELECT * FROM revenue`;
 
-    // console.log('Data fetch completed after 3 seconds.');
+    console.log('Data fetch completed after 3 seconds.');
 
     return data.rows;
   } catch (error) {
@@ -33,6 +44,8 @@ export async function fetchRevenue() {
 }
 
 export async function fetchLatestInvoices() {
+  noStore()
+
   try {
     const data = await sql<LatestInvoiceRaw>`
       SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
@@ -53,6 +66,8 @@ export async function fetchLatestInvoices() {
 }
 
 export async function fetchCardData() {
+  noStore()
+
   try {
     // You can probably combine these into a single SQL query
     // However, we are intentionally splitting them to demonstrate
@@ -92,9 +107,13 @@ export async function fetchFilteredInvoices(
   query: string,
   currentPage: number,
 ) {
+  noStore()
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
   try {
+    // the filtering on date does not work as expected
+    // DATE_TRUNC('day', invoices.date)::text ILIKE ${`%${query}%`} OR
+    // invoices.date::text ILIKE ${`%${query}%`} OR
     const invoices = await sql<InvoicesTable>`
       SELECT
         invoices.id,
@@ -110,7 +129,9 @@ export async function fetchFilteredInvoices(
         customers.name ILIKE ${`%${query}%`} OR
         customers.email ILIKE ${`%${query}%`} OR
         invoices.amount::text ILIKE ${`%${query}%`} OR
-        invoices.date::text ILIKE ${`%${query}%`} OR
+        DATE_TRUNC('year', invoices.date)::text ILIKE ${`%${query}%`} OR
+        DATE_TRUNC('month', invoices.date)::text ILIKE ${`%${query}%`} OR
+        DATE_TRUNC('day', invoices.date)::text ILIKE ${`%${query}%`} OR
         invoices.status ILIKE ${`%${query}%`}
       ORDER BY invoices.date DESC
       LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
@@ -124,6 +145,7 @@ export async function fetchFilteredInvoices(
 }
 
 export async function fetchInvoicesPages(query: string) {
+  noStore()
   try {
     const count = await sql`SELECT COUNT(*)
     FROM invoices
@@ -145,6 +167,7 @@ export async function fetchInvoicesPages(query: string) {
 }
 
 export async function fetchInvoiceById(id: string) {
+  noStore()
   try {
     const data = await sql<InvoiceForm>`
       SELECT
@@ -188,6 +211,7 @@ export async function fetchCustomers() {
 }
 
 export async function fetchFilteredCustomers(query: string) {
+  noStore()
   try {
     const data = await sql<CustomersTableType>`
 		SELECT
